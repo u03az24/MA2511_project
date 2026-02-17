@@ -22,5 +22,6 @@ plots/
 work/plots/
 work/output/
 work/outputs/
+output/
 *.tmp
 MA2511_Project_R_Template.R
