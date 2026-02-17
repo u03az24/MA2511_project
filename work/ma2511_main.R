@@ -33,5 +33,36 @@ windowFeaturesLong <- cbind(
   as.data.frame(windowFeaturesLong$value)
 )
 
-print(head(windowFeaturesLong, 12))
-print(dim(windowFeaturesLong))
+MakeWideByFeature <- function(data, featureName) {
+  longFeature <- data[c("state", "epoch", "channel", featureName)]
+  wideFeature <- reshape(
+    longFeature,
+    idvar = c("state", "epoch"),
+    timevar = "channel",
+    direction = "wide"
+  )
+  featureCols <- names(wideFeature)
+  channelCols <- featureCols[!(featureCols %in% c("state", "epoch"))]
+  names(wideFeature)[names(wideFeature) %in% channelCols] <- paste0(
+    sub(paste0("^", featureName, "\\."), "", channelCols),
+    "_",
+    featureName
+  )
+  wideFeature
+}
+
+meanWide <- MakeWideByFeature(windowFeaturesLong, "mean")
+sdWide <- MakeWideByFeature(windowFeaturesLong, "sd")
+varWide <- MakeWideByFeature(windowFeaturesLong, "var")
+rmsWide <- MakeWideByFeature(windowFeaturesLong, "rms")
+
+windowFeaturesWide <- Reduce(
+  function(left, right) merge(left, right, by = c("state", "epoch")),
+  list(meanWide, sdWide, varWide, rmsWide)
+)
+
+windowFeaturesWide <- windowFeaturesWide[order(windowFeaturesWide$state, windowFeaturesWide$epoch), ]
+rownames(windowFeaturesWide) <- NULL
+
+print(head(windowFeaturesWide, 12))
+print(dim(windowFeaturesWide))
