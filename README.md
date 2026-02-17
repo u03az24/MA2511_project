@@ -9,4 +9,5 @@ This repository contains:
   - computes Welch PSD,
   - provides band-pass filtered signals (delta, theta, alpha, beta, gamma),
   - trims recordings across states to equal length.
+- A preprocessing entry script in `work/preprocess.py` that builds a notch-filtered, length-matched dataset object.
 - Python dependencies listed in `work/requirements.txt`.
