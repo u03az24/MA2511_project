@@ -11,4 +11,5 @@ This repository contains:
   - trims recordings across states to equal length.
 - A preprocessing entry script in `work/preprocess.py` that builds a notch-filtered, length-matched dataset object.
 - An export script in `work/export_features.py` that writes preprocessed raw samples to `output/preprocessed_raw_long.parquet`.
-- Python dependencies listed in `work/requirements.txt`.
+- Python dependencies listed in `work/requirements.py`.
+- R dependencies listed in `work/requirements.R`.
