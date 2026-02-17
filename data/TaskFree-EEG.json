@@ -1,0 +1,11 @@
+{
+	"TaskName":		"Wakefulness",
+	"SoftwareFilters":	"n/a",
+	"PowerLineFrequency":	50,
+	"SamplingFrequency":	1024,
+	"EEGChannelCount":	7,
+	"EOGChannelCount":	0,
+	"ECGChannelCount":	0,
+	"EMGChannelCount":	0,
+	"EEGReference":		"Cer"
+}

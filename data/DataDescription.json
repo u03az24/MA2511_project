@@ -1,0 +1,33 @@
+{
+	"Name":			"Meta-data",
+	"Data":			"Intra-cranial Electroencephalographic (EEG) recordings",
+	"Animal":		"Wistar adult rat",
+	"Ethics approval":	"Conducted in agreement with Uruguay's National Animal Care Law (No. 18611) and with the ``Guide to the care and use of laboratory animals'' (8th edition, National Academy Press, Washington DC, 2010). Furthermore, the Institutional Animal Care Committee (Comisión de Etica en el Uso de Animales) approved the experiments (Exp. No. 070153-000332-16).",
+	"Procedure":		"Animals were chronically implanted with electrodes to monitor the states of sleep and wakefulness. Anaesthesia was induced with a mixture of ketamine-xylazine (90 mg/kg and 5 mg/kg i.p., respectively). The rat was positioned in a stereotaxic frame, the skull was exposed, and stainless-steel screw electrodes were placed bilaterally on the skull above motor, somatosensory, and visual cortices, as well as in the right olfactory bulb and cerebellum (Cer), which was taken as the reference electrode. The electrodes were soldered into a 12-pin socket and fixed onto the skull with acrylic cement. At the end of the surgical procedures, an analgesic (Ketoprofen, 1 mg / kg , s.c.) was administered. After the animal had recovered from these surgical procedures, it was left to adapt in a transparent cage (40 x 30 x 20 cm) containing wood shaving material in a temperature-controlled room (21-24 C) for 1 week before recording started.",
+	"Experiment": 		"The rat was maintained on a 12hr light/dark cycle (lights on at 07: 00 am) with food and water freely available, and determined to be in good health by veterinarians of the institution. The recordings were performed through a rotating connector, to allow the rat to move freely within a transparent recording box (40 × 30 × 20 cm3), and conducted during the light period, between 10AM and 4PM UYT. The recording box is sound-attenuated and has a Faraday shield.",
+	"Recordings":		"Polysomnographic data were amplified (x1000), acquired and stored in a computer using Dasy Lab Software employing 1024 Hz as a sampling frequency and a 16 bits AD converter. The states of sleep and wakefulness were determined in 10 s epochs. Wakefulness was defined as low-voltage fast waves in the motor cortex, a noticeable theta rhythm (4–7 Hz) in the somatosensory and visual cortices, and relatively high EMG activity. NREM sleep was determined by the presence of high-voltage slow cortical waves together with sleep spindles in frontal, parietal, and occipital cortices associated with a reduced EMG amplitude; REM sleep as low-voltage fast frontal waves, a regular theta rhythm in the occipital cortex, and a silent EMG except for occasional twitches. Artifacts and transitional epochs were removed employing visual supervision, so that then a concatenation of all the artifact-free epochs is carried.",
+	"Task": 				"Task Free",
+	"Authors":		[
+				        "Cavelli, Matías",
+				        "Castro-Zaballa, Santiago",
+				        "Mondino, Alejandra",
+				        "González, Joaquín",
+				        "Torterolo, Pablo"
+						 ],
+	"Acknowledgements": 	"The authors acknowledge the Universidad de la República, Departamento de Fisiología de Facultad de Medicina, Av. Gral. Flores 2125, 11800, Montevideo, Uruguay",
+	"Funding":		[
+				        "Programa de Desarrollo de Ciencias Básicas (PEDECIBA), Uruguay",
+				        "Proyecto I+D 2016‐589, Comisión Sectorial de Investigación Cientifica (CSIC), Uruguay",
+				        "Proyecto FCE‐1‐2017‐1‐136550, Agencia Nacional de Investigación e Innovación (ANII), Uruguay"
+					         ],
+        "ReferencesAndLinks":	[
+				        "https://doi.org/10.15761/TBR.1000115",
+				        "https://doi.org/10.1111/ejn.13718",
+				        "https://doi.org/10.1038/s41598-019-54788-6"
+						 ],
+	"HowToAcknowledge":	[
+    					"Cavelli, M., Castro-Zaballa, S., Mondino, A., Gonzalez, J., Falconi, A., & Torterolo, P. (2017). Absence of EEG gamma coherence in a local activated cortical state: a conserved trait of REM sleep. Translational Brain Rhythmicity, 21132017. DOI: 10.15761/TBR.1000115",
+    					"Cavelli, M., Rojas‐Líbano, D., Schwarzkopf, N., Castro‐Zaballa, S., Gonzalez, J., Mondino, A., ... & Torterolo, P. (2018). Power and coherence of cortical high‐frequency oscillations during wakefulness and sleep. European Journal of Neuroscience, 48(8), 2728-2737. DOI: 10.1111/ejn.13718",
+				        "González, J., Cavelli, M., Mondino, A., Pascovich, C., Castro-Zaballa, S., Torterolo, P., & Rubido, N. (2019). Decreased electrocortical temporal complexity distinguishes sleep from wakefulness. Scientific reports, 9(1), 1-9. DOI: 10.1038/s41598-019-54788-6"
+    						 ]
+}
