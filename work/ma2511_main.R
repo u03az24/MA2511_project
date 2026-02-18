@@ -6,6 +6,7 @@
 
 saveFigures <- TRUE
 figuresDir <- file.path("output", "figures")
+printSessionInfo <- FALSE
 
 # 2. Load Packages
 
@@ -286,4 +287,10 @@ if (saveFigures) {
   png(file.path(figuresDir, "accuracy_summary.png"), width = 1000, height = 600)
   DrawAccuracySummaryPlot()
   dev.off()
+}
+
+# 9. Session Information (Optional)
+
+if (printSessionInfo) {
+  sessionInfo()
 }
