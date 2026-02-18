@@ -12,6 +12,6 @@ This repository contains:
   - `output/preprocessed_raw_long_R1.parquet`
   - `output/preprocessed_raw_long_R3.parquet`
 - `work/load_data.R` loads the Parquet export into R.
-- `work/ma2511_main.R` computes window features in memory, prepares long/wide feature tables, and runs a least-squares state classification.
+- `work/ma2511_main.R` computes window features in memory, prepares long/wide feature tables, trains least-squares classification on R1, and evaluates on R3.
 - Python dependencies listed in `work/requirements.py`.
 - R dependencies listed in `work/requirements.R`.

@@ -82,31 +82,53 @@ windowFeaturesWideR3 <- BuildWindowFeaturesWide(rawLongR3)
 print(dim(windowFeaturesWideR1))
 print(dim(windowFeaturesWideR3))
 
-stateLabels <- windowFeaturesWideR1$state
+stateLabelsTrain <- windowFeaturesWideR1$state
 featureCols <- setdiff(names(windowFeaturesWideR1), c("state", "epoch"))
-X <- as.matrix(windowFeaturesWideR1[, featureCols])
-X <- scale(X, center = TRUE, scale = TRUE)
+XTrainRaw <- as.matrix(windowFeaturesWideR1[, featureCols])
+XMean <- colMeans(XTrainRaw)
+XSD <- apply(XTrainRaw, 2, sd)
+XTrain <- sweep(XTrainRaw, 2, XMean, "-")
+XTrain <- sweep(XTrain, 2, XSD, "/")
 
 # 6. Linear Algebra Methods
 
-A <- cbind(1, X)
-yAW <- as.numeric(stateLabels == "AW")
-yNREM <- as.numeric(stateLabels == "NREM")
-yREM <- as.numeric(stateLabels == "REM")
+ATrain <- cbind(1, XTrain)
+yAW <- as.numeric(stateLabelsTrain == "AW")
+yNREM <- as.numeric(stateLabelsTrain == "NREM")
+yREM <- as.numeric(stateLabelsTrain == "REM")
 
-weightsAW <- qr.solve(A, yAW)
-weightsNREM <- qr.solve(A, yNREM)
-weightsREM <- qr.solve(A, yREM)
+weightsAW <- qr.solve(ATrain, yAW)
+weightsNREM <- qr.solve(ATrain, yNREM)
+weightsREM <- qr.solve(ATrain, yREM)
 
-scoreAW <- as.vector(A %*% weightsAW)
-scoreNREM <- as.vector(A %*% weightsNREM)
-scoreREM <- as.vector(A %*% weightsREM)
+scoreAW <- as.vector(ATrain %*% weightsAW)
+scoreNREM <- as.vector(ATrain %*% weightsNREM)
+scoreREM <- as.vector(ATrain %*% weightsREM)
 
 scoreMatrix <- cbind(AW = scoreAW, NREM = scoreNREM, REM = scoreREM)
 predictedState <- colnames(scoreMatrix)[max.col(scoreMatrix, ties.method = "first")]
 
-confusion <- table(actual = stateLabels, predicted = predictedState)
-accuracy <- mean(predictedState == stateLabels)
+confusionTrain <- table(actual = stateLabelsTrain, predicted = predictedState)
+accuracyTrain <- mean(predictedState == stateLabelsTrain)
 
-print(confusion)
-print(accuracy)
+print(confusionTrain)
+print(accuracyTrain)
+
+stateLabelsTest <- windowFeaturesWideR3$state
+XTestRaw <- as.matrix(windowFeaturesWideR3[, featureCols])
+XTest <- sweep(XTestRaw, 2, XMean, "-")
+XTest <- sweep(XTest, 2, XSD, "/")
+
+ATest <- cbind(1, XTest)
+scoreAWTest <- as.vector(ATest %*% weightsAW)
+scoreNREMTest <- as.vector(ATest %*% weightsNREM)
+scoreREMTest <- as.vector(ATest %*% weightsREM)
+
+scoreMatrixTest <- cbind(AW = scoreAWTest, NREM = scoreNREMTest, REM = scoreREMTest)
+predictedStateTest <- colnames(scoreMatrixTest)[max.col(scoreMatrixTest, ties.method = "first")]
+
+confusionTest <- table(actual = stateLabelsTest, predicted = predictedStateTest)
+accuracyTest <- mean(predictedStateTest == stateLabelsTest)
+
+print(confusionTest)
+print(accuracyTest)
