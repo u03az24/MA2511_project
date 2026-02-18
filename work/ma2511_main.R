@@ -153,13 +153,41 @@ splitR3 <- StratifiedSplit(windowFeaturesWideR3, trainFraction = 0.7, seed = 251
 modelR3Split <- FitLeastSquares(splitR3$train, featureCols)
 withinR3Split <- PredictLeastSquares(modelR3Split, splitR3$test, featureCols)
 
-print(withinR1$confusion)
-print(withinR1$accuracy)
-print(withinR3$confusion)
-print(withinR3$accuracy)
-print(crossR1toR3$confusion)
-print(crossR1toR3$accuracy)
-print(crossR3toR1$confusion)
-print(crossR3toR1$accuracy)
-print(withinR3Split$confusion)
-print(withinR3Split$accuracy)
+evaluationResults <- list(
+  withinR1 = withinR1,
+  withinR3 = withinR3,
+  crossR1toR3 = crossR1toR3,
+  crossR3toR1 = crossR3toR1,
+  withinR3Split = withinR3Split
+)
+
+accuracySummary <- data.frame(
+  scenario = c(
+    "Within R1 (train=test)",
+    "Within R3 (train=test)",
+    "Cross R1 -> R3",
+    "Cross R3 -> R1",
+    "Within R3 (70/30 split)"
+  ),
+  accuracy = c(
+    evaluationResults$withinR1$accuracy,
+    evaluationResults$withinR3$accuracy,
+    evaluationResults$crossR1toR3$accuracy,
+    evaluationResults$crossR3toR1$accuracy,
+    evaluationResults$withinR3Split$accuracy
+  )
+)
+
+print("Accuracies:")
+print(accuracySummary)
+
+print("Confusion: Within R1")
+print(evaluationResults$withinR1$confusion)
+print("Confusion: Within R3")
+print(evaluationResults$withinR3$confusion)
+print("Confusion: Cross R1 -> R3")
+print(evaluationResults$crossR1toR3$confusion)
+print("Confusion: Cross R3 -> R1")
+print(evaluationResults$crossR3toR1$confusion)
+print("Confusion: Within R3 (70/30 split)")
+print(evaluationResults$withinR3Split$confusion)
