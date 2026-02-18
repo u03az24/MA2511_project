@@ -7,8 +7,10 @@ This repository contains:
   - loads channel/state recordings from the dataset,
   - applies notch filtering,
   - trims recordings across states to equal length.
-- `work/preprocess.py` builds the preprocessed dataset object.
-- `work/export_features.py` exports preprocessed raw samples to `output/preprocessed_raw_long.parquet`.
+- `work/preprocess.py` builds the preprocessed dataset object for a selected rat dataset.
+- `work/export_features.py` exports preprocessed raw samples to rat-specific parquet files, for example:
+  - `output/preprocessed_raw_long_R1.parquet`
+  - `output/preprocessed_raw_long_R3.parquet`
 - `work/load_data.R` loads the Parquet export into R.
 - `work/ma2511_main.R` computes window features in memory, prepares long/wide feature tables, and runs a least-squares state classification.
 - Python dependencies listed in `work/requirements.py`.

@@ -1,16 +1,32 @@
 from pathlib import Path
+import sys
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from preprocess import BuildPreprocessedDataset, SampleFreq, StateNames, ChannelNames
+from preprocess import BuildPreprocessedDataset, SampleFreq, StateNames, ChannelNames, RatId, DataRootDir
 
 WindowSeconds = 10.0
-OutputParquet = Path(__file__).resolve().parents[1] / "output" / "preprocessed_raw_long.parquet"
+OutputDir = Path(__file__).resolve().parents[1] / "output"
 
 
-def ExportFeatures(outputParquet: str | Path = OutputParquet, windowSeconds: float = WindowSeconds) -> None:
-    dataset = BuildPreprocessedDataset()
+def BuildOutputParquetPath(ratId: str) -> Path:
+    return OutputDir / f"preprocessed_raw_long_{ratId}.parquet"
+
+
+def ListRatIds(dataRootDir: str | Path = DataRootDir) -> list[str]:
+    dataRootDir = Path(dataRootDir)
+    return sorted([path.name for path in dataRootDir.iterdir() if path.is_dir() and path.name.startswith("R")])
+
+
+def ExportFeatures(
+    ratId: str = RatId,
+    outputParquet: str | Path | None = None,
+    windowSeconds: float = WindowSeconds
+) -> None:
+    dataset = BuildPreprocessedDataset(ratId=ratId)
+    if outputParquet is None:
+        outputParquet = BuildOutputParquetPath(ratId)
     outputParquet = Path(outputParquet)
     outputParquet.parent.mkdir(parents=True, exist_ok=True)
     nSamplesPerWindow = int(windowSeconds * SampleFreq)
@@ -52,4 +68,8 @@ def ExportFeatures(outputParquet: str | Path = OutputParquet, windowSeconds: flo
 
 
 if __name__ == "__main__":
-    ExportFeatures()
+    ratIds = sys.argv[1:]
+    if not ratIds:
+        ratIds = ListRatIds()
+    for ratId in ratIds:
+        ExportFeatures(ratId=ratId)
