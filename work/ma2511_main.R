@@ -4,6 +4,9 @@
 # Student ID:
 # Project title:
 
+saveFigures <- TRUE
+figuresDir <- file.path("output", "figures")
+
 # 2. Load Packages
 
 library(arrow)
@@ -85,20 +88,24 @@ print(dim(windowFeaturesWideR3))
 # 5. Exploratory Plots
 
 representativeFeature <- "BOr_sd"
-par(mfrow = c(1, 2))
-boxplot(
-  windowFeaturesWideR1[[representativeFeature]] ~ windowFeaturesWideR1$state,
-  xlab = "State",
-  ylab = representativeFeature,
-  main = "R1: BOr_sd by State"
-)
-boxplot(
-  windowFeaturesWideR3[[representativeFeature]] ~ windowFeaturesWideR3$state,
-  xlab = "State",
-  ylab = representativeFeature,
-  main = "R3: BOr_sd by State"
-)
-par(mfrow = c(1, 1))
+DrawExploratoryBoxplots <- function() {
+  par(mfrow = c(1, 2))
+  boxplot(
+    windowFeaturesWideR1[[representativeFeature]] ~ windowFeaturesWideR1$state,
+    xlab = "State",
+    ylab = representativeFeature,
+    main = "R1: BOr_sd by State"
+  )
+  boxplot(
+    windowFeaturesWideR3[[representativeFeature]] ~ windowFeaturesWideR3$state,
+    xlab = "State",
+    ylab = representativeFeature,
+    main = "R3: BOr_sd by State"
+  )
+  par(mfrow = c(1, 1))
+}
+
+DrawExploratoryBoxplots()
 
 representativeCols <- c("BOr_sd", "M1l_sd", "V2r_rms")
 representativeTableR1 <- aggregate(
@@ -116,6 +123,26 @@ print("Representative feature table (R1 means by state):")
 print(representativeTableR1)
 print("Representative feature table (R3 means by state):")
 print(representativeTableR3)
+
+DrawTablePlot <- function(tableDf, titleText) {
+  tableLines <- capture.output(print(tableDf, row.names = FALSE))
+  nLines <- length(tableLines)
+  par(mar = c(1, 1, 3, 1))
+  plot.new()
+  title(main = titleText, line = 1)
+  yTop <- 0.9
+  yBottom <- 0.35
+  yPos <- seq(yTop, yBottom, length.out = nLines)
+  text(0.05, yPos, labels = tableLines, adj = c(0, 1), family = "mono", cex = 1.2)
+}
+
+exploratoryObjects <- list(
+  representativeTableR1 = representativeTableR1,
+  representativeTableR3 = representativeTableR3,
+  DrawExploratoryBoxplots = DrawExploratoryBoxplots,
+  DrawRepresentativeTableR1 = function() DrawTablePlot(representativeTableR1, "Representative Feature Table (R1 means by state)"),
+  DrawRepresentativeTableR3 = function() DrawTablePlot(representativeTableR3, "Representative Feature Table (R3 means by state)")
+)
 
 featureCols <- setdiff(names(windowFeaturesWideR1), c("state", "epoch"))
 
@@ -226,3 +253,55 @@ print("Confusion: Cross R3 -> R1")
 print(evaluationResults$crossR3toR1$confusion)
 print("Confusion: Within R3 (70/30 split)")
 print(evaluationResults$withinR3Split$confusion)
+
+# 7. Visualisation of Results
+
+DrawAccuracySummaryPlot <- function() {
+  par(mar = c(5, 12, 4, 2))
+  scenarioLabels <- c(
+    "Within R1",
+    "Within R3",
+    "Cross R1 -> R3",
+    "Cross R3 -> R1",
+    "R3 split (70/30)"
+  )
+  barPos <- barplot(
+    accuracySummary$accuracy,
+    names.arg = scenarioLabels,
+    horiz = TRUE,
+    las = 1,
+    xlim = c(0, 1.05),
+    xlab = "Accuracy",
+    main = "Least-Squares Accuracy by Scenario"
+  )
+  text(
+    x = pmin(accuracySummary$accuracy + 0.03, 1.03),
+    y = barPos,
+    labels = sprintf("%.3f", accuracySummary$accuracy),
+    cex = 0.9
+  )
+}
+
+DrawAccuracySummaryPlot()
+
+# 8. Save Figures (Optional)
+
+if (saveFigures) {
+  dir.create(figuresDir, showWarnings = FALSE, recursive = TRUE)
+
+  png(file.path(figuresDir, "exploratory_boxplots_r1_r3.png"), width = 1400, height = 650)
+  exploratoryObjects$DrawExploratoryBoxplots()
+  dev.off()
+
+  png(file.path(figuresDir, "representative_table_r1.png"), width = 900, height = 280)
+  exploratoryObjects$DrawRepresentativeTableR1()
+  dev.off()
+
+  png(file.path(figuresDir, "representative_table_r3.png"), width = 900, height = 280)
+  exploratoryObjects$DrawRepresentativeTableR3()
+  dev.off()
+
+  png(file.path(figuresDir, "accuracy_summary.png"), width = 1000, height = 600)
+  DrawAccuracySummaryPlot()
+  dev.off()
+}

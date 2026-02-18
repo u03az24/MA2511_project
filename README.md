@@ -16,5 +16,7 @@ This repository contains:
   - within-subject (R1 and R3),
   - cross-subject (R1 -> R3 and R3 -> R1),
   - stratified holdout within R3.
+- `work/ma2511_main.R` includes optional figure saving (`saveFigures <- TRUE`) to `output/figures/`.
+- `output/figures/*.png` is tracked for report-ready visuals; parquet exports in `output/` remain ignored.
 - Python dependencies listed in `work/requirements.py`.
 - R dependencies listed in `work/requirements.R`.

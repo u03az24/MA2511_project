@@ -18,10 +18,13 @@ env/
 .vscode/
 .idea/
 *.log
+Rplots.pdf
 plots/
 work/plots/
 work/output/
 work/outputs/
-output/
+output/*
+!output/figures/
+!output/figures/*.png
 *.tmp
 MA2511_Project_R_Template.R
