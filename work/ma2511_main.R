@@ -64,5 +64,11 @@ windowFeaturesWide <- Reduce(
 windowFeaturesWide <- windowFeaturesWide[order(windowFeaturesWide$state, windowFeaturesWide$epoch), ]
 rownames(windowFeaturesWide) <- NULL
 
-print(head(windowFeaturesWide, 12))
 print(dim(windowFeaturesWide))
+
+stateLabels <- windowFeaturesWide$state
+featureCols <- setdiff(names(windowFeaturesWide), c("state", "epoch"))
+X <- as.matrix(windowFeaturesWide[, featureCols])
+X <- scale(X, center = TRUE, scale = TRUE)
+
+print(dim(X))
