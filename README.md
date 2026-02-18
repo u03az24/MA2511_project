@@ -10,6 +10,6 @@ This repository contains:
 - `work/preprocess.py` builds the preprocessed dataset object.
 - `work/export_features.py` exports preprocessed raw samples to `output/preprocessed_raw_long.parquet`.
 - `work/load_data.R` loads the Parquet export into R.
-- `work/ma2511_main.R` computes window features in memory and prepares long/wide feature tables.
+- `work/ma2511_main.R` computes window features in memory, prepares long/wide feature tables, and runs a least-squares state classification.
 - Python dependencies listed in `work/requirements.py`.
 - R dependencies listed in `work/requirements.R`.

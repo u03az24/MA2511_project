@@ -71,4 +71,26 @@ featureCols <- setdiff(names(windowFeaturesWide), c("state", "epoch"))
 X <- as.matrix(windowFeaturesWide[, featureCols])
 X <- scale(X, center = TRUE, scale = TRUE)
 
-print(dim(X))
+# 6. Linear Algebra Methods
+
+A <- cbind(1, X)
+yAW <- as.numeric(stateLabels == "AW")
+yNREM <- as.numeric(stateLabels == "NREM")
+yREM <- as.numeric(stateLabels == "REM")
+
+weightsAW <- qr.solve(A, yAW)
+weightsNREM <- qr.solve(A, yNREM)
+weightsREM <- qr.solve(A, yREM)
+
+scoreAW <- as.vector(A %*% weightsAW)
+scoreNREM <- as.vector(A %*% weightsNREM)
+scoreREM <- as.vector(A %*% weightsREM)
+
+scoreMatrix <- cbind(AW = scoreAW, NREM = scoreNREM, REM = scoreREM)
+predictedState <- colnames(scoreMatrix)[max.col(scoreMatrix, ties.method = "first")]
+
+confusion <- table(actual = stateLabels, predicted = predictedState)
+accuracy <- mean(predictedState == stateLabels)
+
+print(confusion)
+print(accuracy)
