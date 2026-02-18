@@ -82,6 +82,41 @@ windowFeaturesWideR3 <- BuildWindowFeaturesWide(rawLongR3)
 print(dim(windowFeaturesWideR1))
 print(dim(windowFeaturesWideR3))
 
+# 5. Exploratory Plots
+
+representativeFeature <- "BOr_sd"
+par(mfrow = c(1, 2))
+boxplot(
+  windowFeaturesWideR1[[representativeFeature]] ~ windowFeaturesWideR1$state,
+  xlab = "State",
+  ylab = representativeFeature,
+  main = "R1: BOr_sd by State"
+)
+boxplot(
+  windowFeaturesWideR3[[representativeFeature]] ~ windowFeaturesWideR3$state,
+  xlab = "State",
+  ylab = representativeFeature,
+  main = "R3: BOr_sd by State"
+)
+par(mfrow = c(1, 1))
+
+representativeCols <- c("BOr_sd", "M1l_sd", "V2r_rms")
+representativeTableR1 <- aggregate(
+  windowFeaturesWideR1[, representativeCols],
+  by = list(state = windowFeaturesWideR1$state),
+  FUN = mean
+)
+representativeTableR3 <- aggregate(
+  windowFeaturesWideR3[, representativeCols],
+  by = list(state = windowFeaturesWideR3$state),
+  FUN = mean
+)
+
+print("Representative feature table (R1 means by state):")
+print(representativeTableR1)
+print("Representative feature table (R3 means by state):")
+print(representativeTableR3)
+
 featureCols <- setdiff(names(windowFeaturesWideR1), c("state", "epoch"))
 
 # 6. Linear Algebra Methods
