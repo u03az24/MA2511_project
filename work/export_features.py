@@ -8,6 +8,10 @@ from preprocess import BuildPreprocessedDataset, SampleFreq, StateNames, Channel
 
 WindowSeconds = 10.0
 OutputDir = Path(__file__).resolve().parents[1] / "output"
+NotchSettingsByRat = {
+    "R1": (51.0, 1.5),
+    "R3": (50.0, 1.0),
+}
 
 
 def BuildOutputParquetPath(ratId: str) -> Path:
@@ -24,7 +28,12 @@ def ExportFeatures(
     outputParquet: str | Path | None = None,
     windowSeconds: float = WindowSeconds
 ) -> None:
-    dataset = BuildPreprocessedDataset(ratId=ratId)
+    notchCentre, notchWidth = NotchSettingsByRat.get(ratId, (51.0, 1.5))
+    dataset = BuildPreprocessedDataset(
+        ratId=ratId,
+        notchCentre=notchCentre,
+        notchWidth=notchWidth
+    )
     if outputParquet is None:
         outputParquet = BuildOutputParquetPath(ratId)
     outputParquet = Path(outputParquet)
