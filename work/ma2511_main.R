@@ -110,10 +110,6 @@ DrawExploratoryBoxplots <- function() {
 
 DrawExploratoryBoxplots()
 
-exploratoryObjects <- list(
-  DrawExploratoryBoxplots = DrawExploratoryBoxplots
-)
-
 featureCols <- setdiff(names(windowFeaturesWideR1), c("state", "epoch"))
 
 # 6. Linear Algebra Methods
@@ -242,7 +238,7 @@ if (saveFigures) {
   dir.create(figuresDir, showWarnings = FALSE, recursive = TRUE)
 
   png(file.path(figuresDir, "exploratory_boxplots_r1_r3.png"), width = 1400, height = 650)
-  exploratoryObjects$DrawExploratoryBoxplots()
+  DrawExploratoryBoxplots()
   dev.off()
 
   png(file.path(figuresDir, "accuracy_summary.png"), width = 1000, height = 600)
