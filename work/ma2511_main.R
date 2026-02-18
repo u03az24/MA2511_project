@@ -82,53 +82,84 @@ windowFeaturesWideR3 <- BuildWindowFeaturesWide(rawLongR3)
 print(dim(windowFeaturesWideR1))
 print(dim(windowFeaturesWideR3))
 
-stateLabelsTrain <- windowFeaturesWideR1$state
 featureCols <- setdiff(names(windowFeaturesWideR1), c("state", "epoch"))
-XTrainRaw <- as.matrix(windowFeaturesWideR1[, featureCols])
-XMean <- colMeans(XTrainRaw)
-XSD <- apply(XTrainRaw, 2, sd)
-XTrain <- sweep(XTrainRaw, 2, XMean, "-")
-XTrain <- sweep(XTrain, 2, XSD, "/")
 
 # 6. Linear Algebra Methods
 
-ATrain <- cbind(1, XTrain)
-yAW <- as.numeric(stateLabelsTrain == "AW")
-yNREM <- as.numeric(stateLabelsTrain == "NREM")
-yREM <- as.numeric(stateLabelsTrain == "REM")
+FitLeastSquares <- function(trainWide, featureCols) {
+  stateLabelsTrain <- trainWide$state
+  XTrainRaw <- as.matrix(trainWide[, featureCols])
+  XMean <- colMeans(XTrainRaw)
+  XSD <- apply(XTrainRaw, 2, sd)
+  XSD[XSD == 0] <- 1.0
+  XTrain <- sweep(XTrainRaw, 2, XMean, "-")
+  XTrain <- sweep(XTrain, 2, XSD, "/")
+  ATrain <- cbind(1, XTrain)
+  yAW <- as.numeric(stateLabelsTrain == "AW")
+  yNREM <- as.numeric(stateLabelsTrain == "NREM")
+  yREM <- as.numeric(stateLabelsTrain == "REM")
+  weightsAW <- qr.solve(ATrain, yAW)
+  weightsNREM <- qr.solve(ATrain, yNREM)
+  weightsREM <- qr.solve(ATrain, yREM)
+  list(
+    XMean = XMean,
+    XSD = XSD,
+    weightsAW = weightsAW,
+    weightsNREM = weightsNREM,
+    weightsREM = weightsREM
+  )
+}
 
-weightsAW <- qr.solve(ATrain, yAW)
-weightsNREM <- qr.solve(ATrain, yNREM)
-weightsREM <- qr.solve(ATrain, yREM)
+PredictLeastSquares <- function(model, testWide, featureCols) {
+  stateLabelsTest <- testWide$state
+  XTestRaw <- as.matrix(testWide[, featureCols])
+  XTest <- sweep(XTestRaw, 2, model$XMean, "-")
+  XTest <- sweep(XTest, 2, model$XSD, "/")
+  ATest <- cbind(1, XTest)
+  scoreAWTest <- as.vector(ATest %*% model$weightsAW)
+  scoreNREMTest <- as.vector(ATest %*% model$weightsNREM)
+  scoreREMTest <- as.vector(ATest %*% model$weightsREM)
+  scoreMatrixTest <- cbind(AW = scoreAWTest, NREM = scoreNREMTest, REM = scoreREMTest)
+  predictedStateTest <- colnames(scoreMatrixTest)[max.col(scoreMatrixTest, ties.method = "first")]
+  confusionTest <- table(actual = stateLabelsTest, predicted = predictedStateTest)
+  accuracyTest <- mean(predictedStateTest == stateLabelsTest)
+  list(confusion = confusionTest, accuracy = accuracyTest)
+}
 
-scoreAW <- as.vector(ATrain %*% weightsAW)
-scoreNREM <- as.vector(ATrain %*% weightsNREM)
-scoreREM <- as.vector(ATrain %*% weightsREM)
+StratifiedSplit <- function(wide, trainFraction = 0.7, seed = 2511) {
+  set.seed(seed)
+  states <- unique(wide$state)
+  trainIdx <- c()
+  for (stateName in states) {
+    idx <- which(wide$state == stateName)
+    nTrain <- floor(length(idx) * trainFraction)
+    trainIdx <- c(trainIdx, sample(idx, nTrain))
+  }
+  trainWide <- wide[sort(trainIdx), ]
+  testWide <- wide[-sort(trainIdx), ]
+  list(train = trainWide, test = testWide)
+}
 
-scoreMatrix <- cbind(AW = scoreAW, NREM = scoreNREM, REM = scoreREM)
-predictedState <- colnames(scoreMatrix)[max.col(scoreMatrix, ties.method = "first")]
+modelR1 <- FitLeastSquares(windowFeaturesWideR1, featureCols)
+withinR1 <- PredictLeastSquares(modelR1, windowFeaturesWideR1, featureCols)
 
-confusionTrain <- table(actual = stateLabelsTrain, predicted = predictedState)
-accuracyTrain <- mean(predictedState == stateLabelsTrain)
+modelR3 <- FitLeastSquares(windowFeaturesWideR3, featureCols)
+withinR3 <- PredictLeastSquares(modelR3, windowFeaturesWideR3, featureCols)
 
-print(confusionTrain)
-print(accuracyTrain)
+crossR1toR3 <- PredictLeastSquares(modelR1, windowFeaturesWideR3, featureCols)
+crossR3toR1 <- PredictLeastSquares(modelR3, windowFeaturesWideR1, featureCols)
 
-stateLabelsTest <- windowFeaturesWideR3$state
-XTestRaw <- as.matrix(windowFeaturesWideR3[, featureCols])
-XTest <- sweep(XTestRaw, 2, XMean, "-")
-XTest <- sweep(XTest, 2, XSD, "/")
+splitR3 <- StratifiedSplit(windowFeaturesWideR3, trainFraction = 0.7, seed = 2511)
+modelR3Split <- FitLeastSquares(splitR3$train, featureCols)
+withinR3Split <- PredictLeastSquares(modelR3Split, splitR3$test, featureCols)
 
-ATest <- cbind(1, XTest)
-scoreAWTest <- as.vector(ATest %*% weightsAW)
-scoreNREMTest <- as.vector(ATest %*% weightsNREM)
-scoreREMTest <- as.vector(ATest %*% weightsREM)
-
-scoreMatrixTest <- cbind(AW = scoreAWTest, NREM = scoreNREMTest, REM = scoreREMTest)
-predictedStateTest <- colnames(scoreMatrixTest)[max.col(scoreMatrixTest, ties.method = "first")]
-
-confusionTest <- table(actual = stateLabelsTest, predicted = predictedStateTest)
-accuracyTest <- mean(predictedStateTest == stateLabelsTest)
-
-print(confusionTest)
-print(accuracyTest)
+print(withinR1$confusion)
+print(withinR1$accuracy)
+print(withinR3$confusion)
+print(withinR3$accuracy)
+print(crossR1toR3$confusion)
+print(crossR1toR3$accuracy)
+print(crossR3toR1$confusion)
+print(crossR3toR1$accuracy)
+print(withinR3Split$confusion)
+print(withinR3Split$accuracy)
