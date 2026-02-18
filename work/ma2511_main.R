@@ -18,9 +18,16 @@ BuildInputPath <- function(ratId) {
 }
 
 LoadRawLong <- function(ratId) {
-  inputPath <- BuildInputPath(ratId)
-  rawLong <- read_parquet(inputPath)
-  as.data.frame(rawLong)
+  as.data.frame(read_parquet(BuildInputPath(ratId)))
+}
+
+LoadWideByRat <- function(ratIds) {
+  wideByRat <- list()
+  for (ratId in ratIds) {
+    rawLong <- LoadRawLong(ratId)
+    wideByRat[[ratId]] <- BuildWindowFeaturesWide(rawLong)
+  }
+  wideByRat
 }
 
 # 4. Data Cleaning and Preprocessing
@@ -42,45 +49,58 @@ BuildWindowFeaturesLong <- function(rawLong) {
   )
 }
 
-MakeWideByFeature <- function(data, featureName) {
-  longFeature <- data[c("state", "epoch", "channel", featureName)]
+MakeWideByFeature <- function(longData, featureName) {
+  longFeature <- longData[c("state", "epoch", "channel", featureName)]
   wideFeature <- reshape(
     longFeature,
     idvar = c("state", "epoch"),
     timevar = "channel",
     direction = "wide"
   )
-  featureCols <- names(wideFeature)
-  channelCols <- featureCols[!(featureCols %in% c("state", "epoch"))]
-  names(wideFeature)[names(wideFeature) %in% channelCols] <- paste0(
-    sub(paste0("^", featureName, "\\."), "", channelCols),
-    "_",
-    featureName
-  )
+  channelCols <- setdiff(names(wideFeature), c("state", "epoch"))
+  newCols <- paste0(sub(paste0("^", featureName, "\\."), "", channelCols), "_", featureName)
+  names(wideFeature)[match(channelCols, names(wideFeature))] <- newCols
   wideFeature
 }
 
 BuildWindowFeaturesWide <- function(rawLong) {
   windowFeaturesLong <- BuildWindowFeaturesLong(rawLong)
-  meanWide <- MakeWideByFeature(windowFeaturesLong, "mean")
-  sdWide <- MakeWideByFeature(windowFeaturesLong, "sd")
-  varWide <- MakeWideByFeature(windowFeaturesLong, "var")
-  rmsWide <- MakeWideByFeature(windowFeaturesLong, "rms")
-
+  featureNames <- c("mean", "sd", "var", "rms")
+  wideList <- list()
+  for (featureName in featureNames) {
+    wideList[[featureName]] <- MakeWideByFeature(windowFeaturesLong, featureName)
+  }
   windowFeaturesWide <- Reduce(
     function(left, right) merge(left, right, by = c("state", "epoch")),
-    list(meanWide, sdWide, varWide, rmsWide)
+    wideList
   )
   windowFeaturesWide <- windowFeaturesWide[order(windowFeaturesWide$state, windowFeaturesWide$epoch), ]
   rownames(windowFeaturesWide) <- NULL
   windowFeaturesWide
 }
 
-rawLongR1 <- LoadRawLong("R1")
-rawLongR3 <- LoadRawLong("R3")
+BuildRepresentativeTable <- function(wideData, columns) {
+  aggregate(
+    wideData[, columns],
+    by = list(state = wideData$state),
+    FUN = mean
+  )
+}
 
-windowFeaturesWideR1 <- BuildWindowFeaturesWide(rawLongR1)
-windowFeaturesWideR3 <- BuildWindowFeaturesWide(rawLongR3)
+DrawTablePlot <- function(tableDf, titleText) {
+  tableLines <- capture.output(print(tableDf, row.names = FALSE))
+  nLines <- length(tableLines)
+  par(mar = c(1, 1, 3, 1))
+  plot.new()
+  title(main = titleText, line = 1)
+  yPos <- seq(0.9, 0.35, length.out = nLines)
+  text(0.05, yPos, labels = tableLines, adj = c(0, 1), family = "mono", cex = 1.2)
+}
+
+ratIds <- c("R1", "R3")
+wideByRat <- LoadWideByRat(ratIds)
+windowFeaturesWideR1 <- wideByRat$R1
+windowFeaturesWideR3 <- wideByRat$R3
 
 print(dim(windowFeaturesWideR1))
 print(dim(windowFeaturesWideR3))
@@ -108,33 +128,13 @@ DrawExploratoryBoxplots <- function() {
 DrawExploratoryBoxplots()
 
 representativeCols <- c("BOr_sd", "M1l_sd", "V2r_rms")
-representativeTableR1 <- aggregate(
-  windowFeaturesWideR1[, representativeCols],
-  by = list(state = windowFeaturesWideR1$state),
-  FUN = mean
-)
-representativeTableR3 <- aggregate(
-  windowFeaturesWideR3[, representativeCols],
-  by = list(state = windowFeaturesWideR3$state),
-  FUN = mean
-)
+representativeTableR1 <- BuildRepresentativeTable(windowFeaturesWideR1, representativeCols)
+representativeTableR3 <- BuildRepresentativeTable(windowFeaturesWideR3, representativeCols)
 
 print("Representative feature table (R1 means by state):")
 print(representativeTableR1)
 print("Representative feature table (R3 means by state):")
 print(representativeTableR3)
-
-DrawTablePlot <- function(tableDf, titleText) {
-  tableLines <- capture.output(print(tableDf, row.names = FALSE))
-  nLines <- length(tableLines)
-  par(mar = c(1, 1, 3, 1))
-  plot.new()
-  title(main = titleText, line = 1)
-  yTop <- 0.9
-  yBottom <- 0.35
-  yPos <- seq(yTop, yBottom, length.out = nLines)
-  text(0.05, yPos, labels = tableLines, adj = c(0, 1), family = "mono", cex = 1.2)
-}
 
 exploratoryObjects <- list(
   representativeTableR1 = representativeTableR1,
@@ -149,125 +149,107 @@ featureCols <- setdiff(names(windowFeaturesWideR1), c("state", "epoch"))
 # 6. Linear Algebra Methods
 
 FitLeastSquares <- function(trainWide, featureCols) {
-  stateLabelsTrain <- trainWide$state
+  yTrain <- trainWide$state
   XTrainRaw <- as.matrix(trainWide[, featureCols])
   XMean <- colMeans(XTrainRaw)
   XSD <- apply(XTrainRaw, 2, sd)
   XSD[XSD == 0] <- 1.0
+
   XTrain <- sweep(XTrainRaw, 2, XMean, "-")
   XTrain <- sweep(XTrain, 2, XSD, "/")
   ATrain <- cbind(1, XTrain)
-  yAW <- as.numeric(stateLabelsTrain == "AW")
-  yNREM <- as.numeric(stateLabelsTrain == "NREM")
-  yREM <- as.numeric(stateLabelsTrain == "REM")
-  weightsAW <- qr.solve(ATrain, yAW)
-  weightsNREM <- qr.solve(ATrain, yNREM)
-  weightsREM <- qr.solve(ATrain, yREM)
+
+  yAW <- as.numeric(yTrain == "AW")
+  yNREM <- as.numeric(yTrain == "NREM")
+  yREM <- as.numeric(yTrain == "REM")
+
   list(
     XMean = XMean,
     XSD = XSD,
-    weightsAW = weightsAW,
-    weightsNREM = weightsNREM,
-    weightsREM = weightsREM
+    weightsAW = qr.solve(ATrain, yAW),
+    weightsNREM = qr.solve(ATrain, yNREM),
+    weightsREM = qr.solve(ATrain, yREM)
   )
 }
 
 PredictLeastSquares <- function(model, testWide, featureCols) {
-  stateLabelsTest <- testWide$state
+  yTest <- testWide$state
   XTestRaw <- as.matrix(testWide[, featureCols])
   XTest <- sweep(XTestRaw, 2, model$XMean, "-")
   XTest <- sweep(XTest, 2, model$XSD, "/")
   ATest <- cbind(1, XTest)
-  scoreAWTest <- as.vector(ATest %*% model$weightsAW)
-  scoreNREMTest <- as.vector(ATest %*% model$weightsNREM)
-  scoreREMTest <- as.vector(ATest %*% model$weightsREM)
-  scoreMatrixTest <- cbind(AW = scoreAWTest, NREM = scoreNREMTest, REM = scoreREMTest)
-  predictedStateTest <- colnames(scoreMatrixTest)[max.col(scoreMatrixTest, ties.method = "first")]
-  confusionTest <- table(actual = stateLabelsTest, predicted = predictedStateTest)
-  accuracyTest <- mean(predictedStateTest == stateLabelsTest)
-  list(confusion = confusionTest, accuracy = accuracyTest)
+
+  scoreMatrix <- cbind(
+    AW = as.vector(ATest %*% model$weightsAW),
+    NREM = as.vector(ATest %*% model$weightsNREM),
+    REM = as.vector(ATest %*% model$weightsREM)
+  )
+  predicted <- colnames(scoreMatrix)[max.col(scoreMatrix, ties.method = "first")]
+  list(
+    confusion = table(actual = yTest, predicted = predicted),
+    accuracy = mean(predicted == yTest)
+  )
 }
 
-StratifiedSplit <- function(wide, trainFraction = 0.7, seed = 2511) {
+StratifiedSplit <- function(wideData, trainFraction = 0.7, seed = 2511) {
   set.seed(seed)
-  states <- unique(wide$state)
   trainIdx <- c()
-  for (stateName in states) {
-    idx <- which(wide$state == stateName)
+  for (stateName in unique(wideData$state)) {
+    idx <- which(wideData$state == stateName)
     nTrain <- floor(length(idx) * trainFraction)
     trainIdx <- c(trainIdx, sample(idx, nTrain))
   }
-  trainWide <- wide[sort(trainIdx), ]
-  testWide <- wide[-sort(trainIdx), ]
-  list(train = trainWide, test = testWide)
+  trainIdx <- sort(trainIdx)
+  list(
+    train = wideData[trainIdx, ],
+    test = wideData[-trainIdx, ]
+  )
 }
 
 modelR1 <- FitLeastSquares(windowFeaturesWideR1, featureCols)
-withinR1 <- PredictLeastSquares(modelR1, windowFeaturesWideR1, featureCols)
-
 modelR3 <- FitLeastSquares(windowFeaturesWideR3, featureCols)
-withinR3 <- PredictLeastSquares(modelR3, windowFeaturesWideR3, featureCols)
-
-crossR1toR3 <- PredictLeastSquares(modelR1, windowFeaturesWideR3, featureCols)
-crossR3toR1 <- PredictLeastSquares(modelR3, windowFeaturesWideR1, featureCols)
-
 splitR3 <- StratifiedSplit(windowFeaturesWideR3, trainFraction = 0.7, seed = 2511)
 modelR3Split <- FitLeastSquares(splitR3$train, featureCols)
-withinR3Split <- PredictLeastSquares(modelR3Split, splitR3$test, featureCols)
 
 evaluationResults <- list(
-  withinR1 = withinR1,
-  withinR3 = withinR3,
-  crossR1toR3 = crossR1toR3,
-  crossR3toR1 = crossR3toR1,
-  withinR3Split = withinR3Split
+  withinR1 = PredictLeastSquares(modelR1, windowFeaturesWideR1, featureCols),
+  withinR3 = PredictLeastSquares(modelR3, windowFeaturesWideR3, featureCols),
+  crossR1toR3 = PredictLeastSquares(modelR1, windowFeaturesWideR3, featureCols),
+  crossR3toR1 = PredictLeastSquares(modelR3, windowFeaturesWideR1, featureCols),
+  withinR3Split = PredictLeastSquares(modelR3Split, splitR3$test, featureCols)
+)
+
+scenarioOrder <- c("withinR1", "withinR3", "crossR1toR3", "crossR3toR1", "withinR3Split")
+scenarioLabels <- c(
+  withinR1 = "Within R1 (train=test)",
+  withinR3 = "Within R3 (train=test)",
+  crossR1toR3 = "Cross R1 -> R3",
+  crossR3toR1 = "Cross R3 -> R1",
+  withinR3Split = "Within R3 (70/30 split)"
 )
 
 accuracySummary <- data.frame(
-  scenario = c(
-    "Within R1 (train=test)",
-    "Within R3 (train=test)",
-    "Cross R1 -> R3",
-    "Cross R3 -> R1",
-    "Within R3 (70/30 split)"
-  ),
-  accuracy = c(
-    evaluationResults$withinR1$accuracy,
-    evaluationResults$withinR3$accuracy,
-    evaluationResults$crossR1toR3$accuracy,
-    evaluationResults$crossR3toR1$accuracy,
-    evaluationResults$withinR3Split$accuracy
-  )
+  scenario = unname(scenarioLabels[scenarioOrder]),
+  accuracy = sapply(scenarioOrder, function(name) evaluationResults[[name]]$accuracy)
 )
+rownames(accuracySummary) <- NULL
 
 print("Accuracies:")
 print(accuracySummary)
 
-print("Confusion: Within R1")
-print(evaluationResults$withinR1$confusion)
-print("Confusion: Within R3")
-print(evaluationResults$withinR3$confusion)
-print("Confusion: Cross R1 -> R3")
-print(evaluationResults$crossR1toR3$confusion)
-print("Confusion: Cross R3 -> R1")
-print(evaluationResults$crossR3toR1$confusion)
-print("Confusion: Within R3 (70/30 split)")
-print(evaluationResults$withinR3Split$confusion)
+for (name in scenarioOrder) {
+  print(paste("Confusion:", scenarioLabels[[name]]))
+  print(evaluationResults[[name]]$confusion)
+}
 
 # 7. Visualisation of Results
 
 DrawAccuracySummaryPlot <- function() {
   par(mar = c(5, 12, 4, 2))
-  scenarioLabels <- c(
-    "Within R1",
-    "Within R3",
-    "Cross R1 -> R3",
-    "Cross R3 -> R1",
-    "R3 split (70/30)"
-  )
+  shortLabels <- c("Within R1", "Within R3", "Cross R1 -> R3", "Cross R3 -> R1", "R3 split (70/30)")
   barPos <- barplot(
     accuracySummary$accuracy,
-    names.arg = scenarioLabels,
+    names.arg = shortLabels,
     horiz = TRUE,
     las = 1,
     xlim = c(0, 1.05),
